@@ -1,16 +1,15 @@
 package main
 
 import (
-    "os"
-    "fmt"
-    "time"
-    "todo-api/internal/config"
-    "todo-api/internal/db/drivers"
-    "github.com/rs/zerolog"
-    "github.com/rs/zerolog/log"
-    "github.com/labstack/echo/v4"
-    "github.com/labstack/echo/v4/middleware"
-    "github.com/jmoiron/sqlx"
+	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"os"
+	"time"
+	"todo-api/internal/config"
+	"todo-api/internal/db/drivers"
 )
 
 var (
@@ -39,15 +38,7 @@ func init() {
 	}
 	log.Info().Msg("Config loaded")
 	// Connect to database
-	connURL := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.Db.User,
-		cfg.Db.Password,
-		cfg.Db.Host,
-		cfg.Db.Port,
-		cfg.Db.Name,
-	)
-	db, err = drivers.Connect(connURL)
+	db, err = drivers.Connect(cfg.Db.Name)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
@@ -67,7 +58,6 @@ func main() {
 				Str("URI", v.URI).
 				Int("status", v.Status).
 				Msg("request")
-
 			return nil
 		},
 	}))
