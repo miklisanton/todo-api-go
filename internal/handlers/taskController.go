@@ -41,7 +41,7 @@ func (tc *TaskController) CreateTask(c echo.Context) error {
 		Title: taskReq.Title,
 	}
 	// Parse due date
-	if taskReq.DueDate == nil || *taskReq.DueDate == "" {
+	if taskReq.DueDate == nil {
 		task.DueDate = nil
 	} else {
 		parsed, err := time.Parse("2006-01-02", *taskReq.DueDate)
@@ -121,26 +121,19 @@ func (tc *TaskController) UpdateTask(c echo.Context) error {
 		log.Logger.Error().Err(err).Msg("failed to validate task")
 		return c.JSON(http.StatusBadRequest, "invalid request")
 	}
-	// Parse due date
-	var dueDate *time.Time
-
-	if taskReq.DueDate == nil {
-		dueDate = nil
-	} else {
-		parsed, err := time.Parse("2006-01-02", *taskReq.DueDate)
-		dueDate = &parsed
-		if err != nil {
-			log.Logger.Error().Err(err).Msg("failed to parse due date")
-			return c.JSON(http.StatusBadRequest, "invalid due date")
-		}
-	}
-	// Update task
 	task := models.Task{
 		ID:          &id,
 		Title:       taskReq.Title,
 		Description: taskReq.Description,
-		DueDate:     dueDate,
 	}
+	// Parse due date
+    parsed, err := time.Parse("2006-01-02", *taskReq.DueDate)
+    if err != nil {
+        log.Logger.Error().Err(err).Msg("failed to parse due date")
+        return c.JSON(http.StatusBadRequest, "invalid due date")
+    }
+    task.DueDate = &parsed
+	// Update task
 	err = tc.TaskService.UpdateTask(ctx, &task)
 	if err == repository.ErrTaskNotFound {
 		// Create new task with provided ID
