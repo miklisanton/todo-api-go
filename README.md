@@ -14,7 +14,7 @@ It also tracks if the task is overdue.
 #### Usage
 ```bash
 docker build -t todo-api .
-docker run -v data:/build/data -p 8080:8080 todo
+docker run -v data:/build/data -p 8080:8080 todo-api
 
 ```
 
