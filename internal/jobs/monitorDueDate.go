@@ -2,7 +2,7 @@ package jobs
 
 import (
 	"context"
-	"os"
+	"sync"
 	"time"
 	"todo-api/internal/services"
 
@@ -10,32 +10,46 @@ import (
 )
 
 type IDateWorker interface {
-	MonitorDueDate(interval time.Duration)
+	MonitorDueDate(ctx context.Context, interval time.Duration)
+	Wait()
 }
 
 type DateWorker struct {
 	TaskService services.ITaskService
-	ExitChan    chan os.Signal
+	doneWg      sync.WaitGroup
+	Exit        chan int
 }
 
-func NewDateWorker(taskService services.ITaskService, exitChan chan os.Signal) IDateWorker {
-	return &DateWorker{taskService, exitChan}
+func NewDateWorker(taskService services.ITaskService) IDateWorker {
+	return &DateWorker{taskService, sync.WaitGroup{}, make(chan int)}
 }
 
-func (dw *DateWorker) MonitorDueDate(interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	for {
-		select {
-		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), interval)
+func (dw *DateWorker) MonitorDueDate(ctx context.Context, interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		for {
+			select {
+			case <-ticker.C:
+				dw.doneWg.Add(1)
+				ctx, cancel := context.WithTimeout(context.Background(), interval)
 
-			if err := dw.TaskService.UpdateOverdue(ctx); err != nil {
-				log.Logger.Error().Err(err).Msg("failed to update overdue tasks")
+				if err := dw.TaskService.UpdateOverdue(ctx); err != nil {
+					log.Logger.Error().Err(err).Msg("failed to update overdue tasks")
+				}
+				cancel()
+				dw.doneWg.Done()
+			case <-ctx.Done():
+				dw.doneWg.Wait()
+				ticker.Stop()
+				log.Logger.Info().Msg("Date worker stopped")
+				// Signal main goroutine that this worker is done
+				dw.Exit <- 1
+				return
 			}
-			cancel()
-		case <-dw.ExitChan:
-			ticker.Stop()
-			return
 		}
-	}
+	}()
+}
+
+func (dw *DateWorker) Wait() {
+	<-dw.Exit
 }

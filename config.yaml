@@ -1,5 +1,7 @@
-database:
-  name: 'todo-api.db'
+db:
+  name: './todo.db'
 server:
   port: 8080
   timeout: 5
+worker:
+  interval: 10

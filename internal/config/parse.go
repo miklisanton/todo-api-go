@@ -12,11 +12,14 @@ import (
 type Config struct {
 	Db struct {
 		Name string `yaml:"name"`
-	}
+	} `yaml:"db"`
 	Server struct {
 		Port    string `yaml:"port"`
 		Timeout int    `yaml:"timeout"`
-	}
+	} `yaml:"server"`
+	Worker struct {
+		Interval int `yaml:"interval"`
+	} `yaml:"worker"`
 }
 
 func NewConfig(path string) (*Config, error) {
