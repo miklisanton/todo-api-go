@@ -1,18 +1,16 @@
 -- +goose Up
 -- +goose StatementBegin
-SELECT 'up SQL query';
 CREATE TABLE task (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
     description TEXT,
-    due_date TIMESTAMP,
-    overdue BOOLEAN DEFAULT FALSE,
-    completed BOOLEAN DEFAULT FALSE
+    due_date DATETIME,
+    overdue BOOLEAN DEFAULT 0,
+    completed BOOLEAN DEFAULT 0
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
 DROP TABLE task;
--- +goose StatementEn
+-- +goose StatementEnd

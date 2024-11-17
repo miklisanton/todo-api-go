@@ -38,7 +38,7 @@ func init() {
 	}
 	log.Info().Msg("Config loaded")
 	// Connect to database
-	db, err = drivers.Connect(cfg.Db.Name)
+	db, err = drivers.Connect(cfg.Db.Name, "internal/db/migrations")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
@@ -61,7 +61,7 @@ func main() {
 			return nil
 		},
 	}))
-	pg := e.Group("/api1/public")
+	e.Group("/api1/public")
 
 	// Endpoints
 	// Start server
