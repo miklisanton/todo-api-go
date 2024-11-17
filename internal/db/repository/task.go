@@ -17,6 +17,7 @@ type ITaskRepo interface {
 	GetByID(ctx context.Context, id int) (*models.Task, error)
 	GetAll(ctx context.Context) ([]models.Task, error)
 	Delete(ctx context.Context, id int) error
+	GetTasksAfterDue(ctx context.Context) ([]models.Task, error)
 }
 
 type TaskRepo struct {
@@ -129,4 +130,14 @@ func (r *TaskRepo) Delete(ctx context.Context, id int) error {
 		return ErrTaskNotFound
 	}
 	return nil
+}
+
+func (r *TaskRepo) GetTasksAfterDue(ctx context.Context) ([]models.Task, error) {
+	query := `SELECT * FROM task WHERE due_date < CURRENT_TIMESTAMP AND overdue = false`
+	tasks := []models.Task{}
+	err := r.db.SelectContext(ctx, &tasks, query)
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }

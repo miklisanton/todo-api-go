@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"time"
 	"todo-api/internal/db/models"
 	"todo-api/internal/db/repository"
 
@@ -12,6 +13,7 @@ type ITaskService interface {
 	CreateTask(ctx context.Context, task *models.Task) error
 	GetTask(ctx context.Context, id int) (*models.Task, error)
 	GetTasks(ctx context.Context) ([]models.Task, error)
+	UpdateOverdue(ctx context.Context) error
 	UpdateTask(ctx context.Context, task *models.Task) error
 	SetCompleted(ctx context.Context, id int, completed bool) (*models.Task, error)
 	SetOverdue(ctx context.Context, id int, overdue bool) error
@@ -54,7 +56,17 @@ func (s TaskService) GetTasks(ctx context.Context) ([]models.Task, error) {
 }
 
 func (s TaskService) UpdateTask(ctx context.Context, task *models.Task) error {
-	// Update task
+	// Check if task is overdue
+	if task.DueDate != nil {
+		var overdue bool
+		if task.DueDate.Before(time.Now()) {
+			overdue = true
+		} else {
+			overdue = false
+		}
+		task.Overdue = &overdue
+	}
+
 	err := s.Repo.Update(ctx, task)
 	if err != nil {
 		log.Logger.Error().Err(err).Msgf("failed to update task with id %d", *task.ID)
@@ -95,5 +107,25 @@ func (s TaskService) DeleteTask(ctx context.Context, id int) error {
 		log.Logger.Error().Err(err).Msgf("failed to delete task with id %d", id)
 		return err
 	}
+	return nil
+}
+
+// UpdateOverdue fetches all overdue tasks and sets the overdue flag to true
+func (s TaskService) UpdateOverdue(ctx context.Context) error {
+	tasks, err := s.Repo.GetTasksAfterDue(ctx)
+	log.Logger.Info().Msgf("found overdue tasks: %d", len(tasks))
+	if err != nil {
+		log.Logger.Error().Err(err).Msgf("failed to get tasks by due date")
+		return err
+	}
+	for _, task := range tasks {
+		err := s.SetOverdue(ctx, *task.ID, true)
+		if err != nil {
+			log.Logger.Error().Err(err).Msgf("failed to set overdue for task with id %d", *task.ID)
+			return err
+		}
+		log.Logger.Info().Msgf("task with id %d is overdue", *task.ID)
+	}
+	log.Logger.Info().Msg("overdue tasks updated")
 	return nil
 }

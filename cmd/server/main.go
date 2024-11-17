@@ -7,6 +7,7 @@ import (
 	"todo-api/internal/db/drivers"
 	"todo-api/internal/db/repository"
 	"todo-api/internal/handlers"
+	"todo-api/internal/jobs"
 	"todo-api/internal/requests"
 	"todo-api/internal/services"
 
@@ -80,6 +81,10 @@ func main() {
 	pg.GET("/tasks", taskController.GetTasks)
 	pg.PATCH("/tasks/:id/completed", taskController.SetCompleted)
 	pg.PUT("/tasks/:id", taskController.UpdateTask)
+	// Start overdue tasks monitor
+	exitChan := make(chan os.Signal, 1)
+	dateWorker := jobs.NewDateWorker(taskService, exitChan)
+	go dateWorker.MonitorDueDate(time.Duration(10) * time.Second)
 	// Start server
 	e.Logger.Fatal(e.Start(":" + cfg.Server.Port))
 }
