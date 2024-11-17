@@ -2,7 +2,7 @@ FROM golang:latest as builder
 
 WORKDIR /build
 
-ADD go.mod .env config.yaml .
+ADD go.mod config.yaml .
 
 COPY . .
 
@@ -13,8 +13,6 @@ FROM golang:latest
 WORKDIR /build
 
 COPY --from=builder /build/main /build/main
-
-COPY --from=builder /build/.env /build/.env
 
 COPY --from=builder /build/config.yaml /build/config.yaml
 
