@@ -1,15 +1,21 @@
 package main
 
 import (
+	"os"
+	"time"
+	"todo-api/internal/config"
+	"todo-api/internal/db/drivers"
+	"todo-api/internal/db/repository"
+	"todo-api/internal/handlers"
+	"todo-api/internal/requests"
+	"todo-api/internal/services"
+
+	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"os"
-	"time"
-	"todo-api/internal/config"
-	"todo-api/internal/db/drivers"
 )
 
 var (
@@ -46,8 +52,12 @@ func init() {
 }
 
 func main() {
+	// Setup repositories
+	taskRepo := repository.NewTaskRepo(db)
 	// Setup services
+	taskService := services.NewTaskService(taskRepo)
 	// Setup controllers
+	taskController := handlers.NewTaskController(taskService, time.Duration(cfg.Server.Timeout)*time.Second)
 	// Setup echo
 	e := echo.New()
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
@@ -61,9 +71,15 @@ func main() {
 			return nil
 		},
 	}))
-	e.Group("/api1/public")
+	e.Validator = &requests.CustomValidator{Validator: validator.New()}
+	pg := e.Group("/api1/public")
 
 	// Endpoints
+	pg.POST("/tasks", taskController.CreateTask)
+	pg.GET("/tasks/:id", taskController.GetTask)
+	pg.GET("/tasks", taskController.GetTasks)
+	pg.PATCH("/tasks/:id/completed", taskController.SetCompleted)
+	pg.PUT("/tasks/:id", taskController.UpdateTask)
 	// Start server
 	e.Logger.Fatal(e.Start(":" + cfg.Server.Port))
 }

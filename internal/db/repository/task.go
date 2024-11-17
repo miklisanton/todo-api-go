@@ -37,11 +37,10 @@ func (r *TaskRepo) Create(ctx context.Context, task *models.Task) error {
 	query := `
     INSERT INTO task(id, title, description, due_date)
     VALUES($1, $2, $3, $4)
-    RETURNING id
+    RETURNING id, title, description, due_date, completed, overdue
     `
-	row := r.db.QueryRowContext(ctx, query, task.ID, task.Title, task.Description, task.DueDate)
-	var id int
-	err := row.Scan(&id)
+	row := r.db.QueryRowxContext(ctx, query, task.ID, task.Title, task.Description, task.DueDate)
+	err := row.StructScan(task)
 	if err != nil {
 		if sqliteErr, ok := err.(sqlite3.Error); ok {
 			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintPrimaryKey {
@@ -52,7 +51,6 @@ func (r *TaskRepo) Create(ctx context.Context, task *models.Task) error {
 		}
 		return err
 	}
-	task.ID = &id
 	return nil
 }
 

@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"todo-api/internal/db/models"
 	"todo-api/internal/db/repository"
 
@@ -12,8 +11,10 @@ import (
 type ITaskService interface {
 	CreateTask(ctx context.Context, task *models.Task) error
 	GetTask(ctx context.Context, id int) (*models.Task, error)
-	GetTasks(ctx context.Context, f repository.TaskFilter, page, limit int) ([]models.Task, error)
-	UpdateTask(ctx context.Context, task, newTask *models.Task) (*models.Task, error)
+	GetTasks(ctx context.Context) ([]models.Task, error)
+	UpdateTask(ctx context.Context, task *models.Task) error
+	SetCompleted(ctx context.Context, id int, completed bool) (*models.Task, error)
+	SetOverdue(ctx context.Context, id int, overdue bool) error
 	DeleteTask(ctx context.Context, id int) error
 }
 
@@ -52,17 +53,17 @@ func (s TaskService) GetTasks(ctx context.Context) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func (s TaskService) UpdateTask(ctx context.Context, task, newTask *models.Task) (*models.Task, error) {
+func (s TaskService) UpdateTask(ctx context.Context, task *models.Task) error {
 	// Update task
-	err := s.Repo.Update(ctx, newTask)
+	err := s.Repo.Update(ctx, task)
 	if err != nil {
 		log.Logger.Error().Err(err).Msgf("failed to update task with id %d", *task.ID)
-		return nil, err
+		return err
 	}
-	return newTask, nil
+	return nil
 }
 
-func (s TaskService) SetCompleted(ctx context.Context, id int, completed bool) error {
+func (s TaskService) SetCompleted(ctx context.Context, id int, completed bool) (*models.Task, error) {
 	task := &models.Task{
 		ID:        &id,
 		Completed: &completed,
@@ -70,9 +71,9 @@ func (s TaskService) SetCompleted(ctx context.Context, id int, completed bool) e
 	err := s.Repo.Update(ctx, task)
 	if err != nil {
 		log.Logger.Error().Err(err).Msgf("failed to set completed task with id %d", id)
-		return err
+		return nil, err
 	}
-	return nil
+	return task, nil
 }
 
 func (s TaskService) SetOverdue(ctx context.Context, id int, overdue bool) error {
